@@ -10,6 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Supervisor overview operations
+  - name: tasks
+    description: Task orchestration operations
+  - name: simulation
+    description: Simulation operations
+  - name: catalog
+    description: Worker, model, provider, usage, and budget catalog operations
 paths:
   /healthz:
     get:
@@ -24,7 +32,271 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard overview
+      responses:
+        "200":
+          description: Dashboard overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List orchestration tasks
+      responses:
+        "200":
+          description: Task list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /tasks/{taskId}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get task details
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /tasks/{taskId}/start:
+    post:
+      operationId: startTask
+      tags: [tasks]
+      summary: Start a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Started task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /tasks/{taskId}/pause:
+    post:
+      operationId: pauseTask
+      tags: [tasks]
+      summary: Pause a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Paused task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /tasks/{taskId}/resume:
+    post:
+      operationId: resumeTask
+      tags: [tasks]
+      summary: Resume a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Resumed task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /tasks/{taskId}/cancel:
+    post:
+      operationId: cancelTask
+      tags: [tasks]
+      summary: Cancel a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Cancelled task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /tasks/{taskId}/events:
+    get:
+      operationId: getTaskEvents
+      tags: [tasks]
+      summary: Get task event timeline
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Task events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskEvent"
+  /tasks/{taskId}/checkpoints:
+    get:
+      operationId: getTaskCheckpoints
+      tags: [tasks]
+      summary: Get task checkpoints
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          description: Task checkpoints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Checkpoint"
+    post:
+      operationId: createCheckpoint
+      tags: [tasks]
+      summary: Create a checkpoint
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckpointInput"
+      responses:
+        "201":
+          description: Created checkpoint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Checkpoint"
+  /simulation/run:
+    post:
+      operationId: runSimulation
+      tags: [simulation]
+      summary: Create and run a simulated task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulationInput"
+      responses:
+        "201":
+          description: Simulation task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+  /workers:
+    get:
+      operationId: listWorkers
+      tags: [catalog]
+      summary: List configured workers
+      responses:
+        "200":
+          description: Workers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Worker"
+  /models:
+    get:
+      operationId: listModels
+      tags: [catalog]
+      summary: List configured models
+      responses:
+        "200":
+          description: Models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Model"
+  /providers:
+    get:
+      operationId: listProviders
+      tags: [catalog]
+      summary: List configured providers
+      responses:
+        "200":
+          description: Providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Provider"
+  /usage:
+    get:
+      operationId: getUsage
+      tags: [catalog]
+      summary: Get usage summary
+      responses:
+        "200":
+          description: Usage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usage"
+  /budgets:
+    get:
+      operationId: getBudgets
+      tags: [catalog]
+      summary: Get budget summary
+      responses:
+        "200":
+          description: Budgets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Budget"
 components:
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +305,155 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    Task:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        status: { type: string }
+        scenario: { type: string }
+        priority: { type: string }
+        currentWorker: { type: ["string", "null"] }
+        currentModel: { type: ["string", "null"] }
+        attempts: { type: integer }
+        failedAttempts: { type: integer }
+        successfulAttempts: { type: integer }
+        retryCount: { type: integer }
+        tokensUsed: { type: integer }
+        estimatedCost: { type: number }
+        budget: { type: number }
+        progress: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        latestMessage: { type: string }
+      required: [id, title, description, status, scenario, priority, currentWorker, currentModel, attempts, failedAttempts, successfulAttempts, retryCount, tokensUsed, estimatedCost, budget, progress, createdAt, updatedAt, latestMessage]
+    TaskInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string, minLength: 1 }
+        scenario: { type: string }
+        priority: { type: string }
+        budget: { type: number }
+      required: [title, description, scenario]
+    TaskEvent:
+      type: object
+      properties:
+        id: { type: string }
+        taskId: { type: string }
+        timestamp: { type: string }
+        worker: { type: ["string", "null"] }
+        model: { type: ["string", "null"] }
+        action: { type: string }
+        status: { type: string }
+        attempt: { type: integer }
+        tokens: { type: integer }
+        cost: { type: number }
+        message: { type: string }
+      required: [id, taskId, timestamp, worker, model, action, status, attempt, tokens, cost, message]
+    Checkpoint:
+      type: object
+      properties:
+        id: { type: string }
+        taskId: { type: string }
+        timestamp: { type: string }
+        state: { type: string }
+        worker: { type: ["string", "null"] }
+        model: { type: ["string", "null"] }
+        completedWork: { type: array, items: { type: string } }
+        remainingWork: { type: array, items: { type: string } }
+        blocker: { type: ["string", "null"] }
+        nextAction: { type: string }
+        testsPassed: { type: integer }
+        testsFailed: { type: integer }
+        tokens: { type: integer }
+        cost: { type: number }
+      required: [id, taskId, timestamp, state, worker, model, completedWork, remainingWork, blocker, nextAction, testsPassed, testsFailed, tokens, cost]
+    CheckpointInput:
+      type: object
+      properties:
+        nextAction: { type: string }
+        blocker: { type: string }
+      required: [nextAction]
+    SimulationInput:
+      type: object
+      properties:
+        scenario: { type: string }
+        title: { type: string }
+      required: [scenario]
+    Worker:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string }
+        provider: { type: string }
+        model: { type: string }
+        status: { type: string }
+        capabilities: { type: array, items: { type: string } }
+        isLocal: { type: boolean }
+      required: [id, name, type, provider, model, status, capabilities, isLocal]
+    Model:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        provider: { type: string }
+        contextSize: { type: integer }
+        maxOutput: { type: integer }
+        costPer1k: { type: number }
+        capabilities: { type: array, items: { type: string } }
+      required: [id, name, provider, contextSize, maxOutput, costPer1k, capabilities]
+    Provider:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        kind: { type: string }
+        endpoint: { type: string }
+        status: { type: string }
+        models: { type: integer }
+      required: [id, name, kind, endpoint, status, models]
+    Usage:
+      type: object
+      properties:
+        tokensUsed: { type: integer }
+        estimatedCost: { type: number }
+        localRuns: { type: integer }
+        cloudRuns: { type: integer }
+        completedTasks: { type: integer }
+        averageDuration: { type: string }
+      required: [tokensUsed, estimatedCost, localRuns, cloudRuns, completedTasks, averageDuration]
+    Budget:
+      type: object
+      properties:
+        taskLimit: { type: number }
+        taskUsed: { type: number }
+        monthlyLimit: { type: number }
+        monthlyUsed: { type: number }
+        creditsRemaining: { type: number }
+      required: [taskLimit, taskUsed, monthlyLimit, monthlyUsed, creditsRemaining]
+    Dashboard:
+      type: object
+      properties:
+        activeTasks: { type: integer }
+        completedTasks: { type: integer }
+        failedTasks: { type: integer }
+        escalationTasks: { type: integer }
+        workersRunning: { type: integer }
+        tokensUsed: { type: integer }
+        cloudCost: { type: number }
+        creditsRemaining: { type: number }
+        recentEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskEvent"
+      required: [activeTasks, completedTasks, failedTasks, escalationTasks, workersRunning, tokensUsed, cloudCost, creditsRemaining, recentEvents]
 

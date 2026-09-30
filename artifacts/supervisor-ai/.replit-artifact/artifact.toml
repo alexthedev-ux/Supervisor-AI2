@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Supervisor AI"
+description = "A control-room dashboard for orchestrating, validating, retrying, escalating, and resuming AI coding tasks with persistent state and a complete simulation mode."
+version = "1.0.0"
+id = "artifacts/supervisor-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24372
+
+[services.development]
+run = "pnpm --filter @workspace/supervisor-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/supervisor-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/supervisor-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24372"
+BASE_PATH = "/"

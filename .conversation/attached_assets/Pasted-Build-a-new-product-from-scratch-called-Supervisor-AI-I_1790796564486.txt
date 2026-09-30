@@ -1,0 +1,1070 @@
+Build a new product from scratch called "Supervisor AI".
+
+IMPORTANT:
+This is a completely independent implementation.
+
+Do NOT use, copy, recreate, or assume any existing implementation from another project or coding agent.
+
+Do NOT assume there is an existing supervisor.py, worker.py, test suite, database, architecture, or codebase.
+
+Design the architecture yourself based only on the product specification below.
+
+The goal is to build a working MVP, not a static mockup.
+
+==================================================
+PRODUCT
+==================================================
+
+Supervisor AI is an AI orchestration and control system that sits ABOVE AI coding agents.
+
+The user gives Supervisor a software development task.
+
+Supervisor manages one or more AI coding agents and makes sure the task actually gets completed and validated.
+
+The core concept is:
+
+USER
+  ↓
+SUPERVISOR AI
+  ↓
+CODING AGENT / WORKER
+  ↓
+CODE
+  ↓
+TESTS / BROWSER / VALIDATION
+  ↓
+RESULT
+  ↓
+SUPERVISOR
+  ↓
+DONE / RETRY / ESCALATE
+  ↓
+ANOTHER AGENT IF NECESSARY
+
+The Supervisor is NOT primarily the coding agent.
+
+Its main responsibility is orchestration, verification, state management, recovery and intelligent routing.
+
+==================================================
+CORE PROBLEM
+==================================================
+
+AI coding agents can write code, but they can also:
+
+- misunderstand requirements;
+- introduce bugs;
+- get stuck in loops;
+- repeatedly fix one problem while creating another;
+- claim a task is finished when tests still fail;
+- waste large amounts of tokens;
+- waste cloud money;
+- lose useful context;
+- fail halfway through a complex task.
+
+Supervisor AI exists to control this process.
+
+The Supervisor should determine:
+
+"Is the task actually finished?"
+
+not simply:
+
+"Did the coding agent say it is finished?"
+
+==================================================
+MAIN WORKFLOW
+==================================================
+
+A user creates a task:
+
+Example:
+
+"Fix the authentication problem in my application."
+
+Supervisor should:
+
+1. Receive the task.
+2. Understand the goal.
+3. Create a task state.
+4. Select a Worker.
+5. Give the Worker the task.
+6. Monitor the Worker.
+7. Receive the Worker result.
+8. Validate the result.
+9. Decide what happens next.
+10. Repeat when necessary.
+11. Escalate when the current Worker is no longer effective.
+12. Create checkpoints before important transitions.
+13. Resume from checkpoints when another Worker takes over.
+14. Finish only when validation succeeds.
+
+==================================================
+AGENT HIERARCHY
+==================================================
+
+The system should support multiple AI agents.
+
+Example:
+
+Supervisor:
+small local model
+
+Worker:
+local coding model
+
+Escalation Worker:
+stronger cloud model
+
+For example:
+
+Supervisor 1B
+       ↓
+Worker 9B local
+       ↓
+3 failed attempts
+       ↓
+Cloud 30B
+       ↓
+checkpoint
+       ↓
+Worker 9B resumes
+       ↓
+validation
+       ↓
+DONE
+
+The exact models are configurable.
+
+Do NOT hard-code specific model names.
+
+==================================================
+MODEL / PROVIDER AGNOSTIC
+==================================================
+
+Supervisor must not depend on one AI provider.
+
+The architecture must support different providers and models.
+
+Potential providers include:
+
+- local OpenAI-compatible servers
+- LM Studio
+- Ollama
+- OpenAI-compatible APIs
+- cloud AI providers
+- coding-agent runtimes
+- future providers
+
+The Supervisor should communicate through provider/agent interfaces.
+
+The user should be able to configure:
+
+Provider
+Model
+API endpoint
+API key
+Context size
+Maximum output
+Cost information
+Capabilities
+
+==================================================
+WORKER AGENT
+==================================================
+
+A Worker is an agent capable of actually performing work.
+
+A Worker may:
+
+- inspect files;
+- edit code;
+- run terminal commands;
+- run tests;
+- start development servers;
+- inspect logs;
+- use browser tools;
+- make changes;
+- report progress.
+
+The Supervisor should not assume how a Worker performs these actions.
+
+Create a generic Worker/Agent interface.
+
+Potential implementations:
+
+LocalWorker
+CloudWorker
+ClineWorker
+MockWorker
+OpenAICompatibleWorker
+
+The first MVP can use a simulated Worker if real AI integration is not available.
+
+==================================================
+SUPERVISOR DECISION ENGINE
+==================================================
+
+Supervisor must make explicit decisions.
+
+Possible states:
+
+PLANNING
+RUNNING
+VALIDATING
+RETRY
+ESCALATING
+CHECKPOINTING
+RESUMING
+DONE
+FAILED
+PAUSED
+
+The Supervisor should never rely on arbitrary strings scattered throughout the application.
+
+Use an explicit state machine or equivalent robust state-management system.
+
+The decision engine should consider:
+
+- Worker result;
+- test results;
+- browser validation;
+- repeated errors;
+- progress;
+- attempts;
+- token usage;
+- cost;
+- task complexity;
+- configured policies.
+
+==================================================
+RETRY
+==================================================
+
+When a Worker fails, Supervisor may retry.
+
+Example:
+
+Attempt 1
+FAIL
+
+Supervisor:
+RETRY
+
+Attempt 2
+FAIL
+
+Supervisor:
+RETRY
+
+Attempt 3
+SUCCESS
+
+Supervisor:
+DONE
+
+Retry limits must be configurable.
+
+Track separately:
+
+total attempts
+failed attempts
+successful attempts
+retry count
+
+Never count an attempt twice.
+
+==================================================
+LOOP DETECTION
+==================================================
+
+This is a critical feature.
+
+Supervisor should detect when an agent is stuck.
+
+Examples:
+
+Same error repeated.
+
+Same files modified repeatedly.
+
+Same test failures repeatedly.
+
+Agent reports success but validation still fails.
+
+No meaningful progress across several attempts.
+
+The Worker produces substantially identical results.
+
+When a loop is detected:
+
+STOP the Worker.
+
+Create a checkpoint.
+
+Analyze the situation.
+
+Then either:
+
+RETRY with better context
+
+or
+
+ESCALATE to another Worker.
+
+==================================================
+ESCALATION
+==================================================
+
+Escalation means transferring the task to a stronger or different agent.
+
+Example:
+
+Local Worker:
+9B
+
+Attempts:
+3
+
+Result:
+still failing
+
+Supervisor:
+
+ESCALATE
+
+Cloud Worker:
+stronger model
+
+The new Worker must receive enough state to continue the task.
+
+Do NOT simply send the entire previous conversation blindly.
+
+Instead provide a structured checkpoint.
+
+==================================================
+CHECKPOINT SYSTEM
+==================================================
+
+Checkpoints are one of the most important features.
+
+A checkpoint should capture the actual state of the work.
+
+Include:
+
+Task ID
+Original request
+Current state
+Current Worker
+Provider
+Model
+Attempt history
+Files changed
+Git information if available
+Test results
+Browser validation
+Errors
+Completed work
+Remaining work
+Current blocker
+Recommended next action
+Token usage
+Cost
+Timestamp
+
+Example:
+
+TASK:
+Fix authentication
+
+WORKER:
+Cloud coding agent
+
+COMPLETED:
+Backend authentication fixed.
+Database migration completed.
+
+REMAINING:
+Frontend login still returns HTTP 500.
+
+TESTS:
+18 passed
+2 failed
+
+CHECKPOINT:
+Backend complete.
+Resume frontend authentication debugging.
+
+A different Worker should be able to resume from this checkpoint.
+
+==================================================
+CONTEXT MANAGEMENT
+==================================================
+
+This is a major product feature.
+
+Do NOT blindly pass the entire conversation history to every Worker.
+
+Supervisor should maintain structured task state.
+
+When switching agents:
+
+provide:
+
+original objective
+current state
+relevant files
+previous changes
+test results
+current errors
+checkpoint
+next recommended action
+
+This reduces token consumption.
+
+The Supervisor should be able to summarize old context.
+
+==================================================
+BUDGET CONTROL
+==================================================
+
+Cloud AI can become expensive.
+
+Supervisor must enforce budgets.
+
+Support:
+
+per-task token budget
+per-task cost budget
+monthly budget
+provider budget
+maximum attempts
+
+Example:
+
+Task budget:
+$0.50
+
+Cloud Worker consumes:
+$0.31
+
+Remaining:
+$0.19
+
+Supervisor must prevent spending beyond the configured limit.
+
+Show:
+
+tokens used
+estimated cost
+actual cost
+remaining budget
+
+If the budget is exhausted:
+
+checkpoint the task
+
+and stop or switch to an allowed cheaper Worker.
+
+==================================================
+LOCAL-FIRST STRATEGY
+==================================================
+
+The system should prefer local Workers when configured.
+
+Example:
+
+Local Worker available:
+use local Worker.
+
+Local Worker repeatedly fails:
+escalate.
+
+Strong cloud Worker solves difficult portion:
+checkpoint.
+
+Cheaper local Worker resumes:
+continue.
+
+This allows expensive models to be used only when necessary.
+
+==================================================
+VALIDATION
+==================================================
+
+A Worker saying:
+
+"Done"
+
+must NOT automatically mean the task is done.
+
+Supervisor should independently validate the result.
+
+Validation can include:
+
+1. Tests
+2. Browser
+3. Application health
+4. Logs
+5. Expected output
+6. User-defined assertions
+
+Only after validation succeeds should the task become DONE.
+
+==================================================
+TEST RUNNER
+==================================================
+
+Create a TestRunner abstraction.
+
+It should be able to execute project tests.
+
+Examples:
+
+pytest
+npm test
+npm run test
+custom commands
+
+Capture:
+
+exit code
+stdout
+stderr
+passed tests
+failed tests
+duration
+
+The Supervisor should use real test results whenever possible.
+
+==================================================
+BROWSER VALIDATOR
+==================================================
+
+Create a BrowserValidator abstraction.
+
+The Supervisor should eventually be able to independently verify web applications.
+
+Capabilities should include:
+
+open URL
+click
+type
+submit
+inspect page
+inspect DOM
+inspect console errors
+inspect network errors
+screenshots
+assertions
+
+Example:
+
+Worker says:
+
+"Login fixed."
+
+Supervisor:
+
+Open application.
+
+Enter email.
+
+Enter password.
+
+Click Login.
+
+Expected:
+Dashboard appears.
+
+If successful:
+
+PASS
+
+Otherwise:
+
+FAIL
+
+Then send the exact failure back to the Worker.
+
+If the current environment cannot provide real browser automation, create a clean interface and a simulated validator for the MVP.
+
+Clearly distinguish simulated validation from real validation.
+
+==================================================
+TOOLS
+==================================================
+
+Supervisor should eventually coordinate tools such as:
+
+Filesystem
+Terminal
+Git
+Test Runner
+Browser
+Logs
+Process Manager
+
+Use abstraction layers so implementations can be replaced.
+
+==================================================
+GIT / CHECKPOINTS
+==================================================
+
+When operating on real projects, support Git-aware checkpoints.
+
+Before risky operations:
+
+create checkpoint
+
+After successful work:
+
+record resulting state
+
+If necessary:
+
+restore/revert to a previous safe state.
+
+Do not make Git mandatory for the entire product, but support it where available.
+
+==================================================
+TASK QUEUE
+==================================================
+
+Supervisor should support multiple tasks.
+
+Each task should contain:
+
+ID
+Title
+Description
+Priority
+Status
+Created time
+Updated time
+Current Worker
+Attempt count
+Token usage
+Cost
+Checkpoint
+Project
+
+Task states should include:
+
+PENDING
+RUNNING
+PAUSED
+VALIDATING
+RETRYING
+ESCALATING
+COMPLETED
+FAILED
+
+==================================================
+EVENT SYSTEM
+==================================================
+
+Every important action should produce a structured event.
+
+Examples:
+
+task_created
+task_started
+worker_started
+worker_progress
+worker_completed
+validation_started
+validation_passed
+validation_failed
+retry_started
+loop_detected
+checkpoint_created
+worker_escalated
+task_completed
+task_failed
+
+Each event should contain:
+
+timestamp
+task ID
+worker
+model
+action
+status
+attempt
+tokens
+cost
+message
+
+==================================================
+USER INTERFACE
+==================================================
+
+Create a modern dashboard.
+
+Main sections:
+
+Dashboard
+Tasks
+Task Details
+Workers
+Models
+Providers
+Checkpoints
+Usage
+Costs
+Logs
+Settings
+
+Dashboard should show:
+
+Active tasks
+Completed tasks
+Failed tasks
+Tasks requiring escalation
+Workers running
+Current models
+Tokens used
+Cloud cost
+Credits remaining
+
+==================================================
+TASK DETAIL
+==================================================
+
+A task should have a visual execution timeline.
+
+Example:
+
+USER TASK
+ ↓
+SUPERVISOR
+ ↓
+LOCAL WORKER
+ ↓
+ATTEMPT 1
+ ↓
+TEST FAILED
+ ↓
+RETRY
+ ↓
+ATTEMPT 2
+ ↓
+LOOP DETECTED
+ ↓
+CHECKPOINT
+ ↓
+ESCALATION
+ ↓
+CLOUD WORKER
+ ↓
+VALIDATION
+ ↓
+PASS
+ ↓
+DONE
+
+Every step should be inspectable.
+
+Show:
+
+timestamp
+agent
+model
+action
+result
+tokens
+cost
+duration
+
+==================================================
+LIVE ACTIVITY
+==================================================
+
+Show real-time activity.
+
+Example:
+
+[22:01:04] Task received
+[22:01:05] Supervisor planning
+[22:01:06] Local Worker selected
+[22:01:07] Worker started
+[22:01:42] Tests failed
+[22:01:43] Retry 2/3
+[22:02:31] Tests failed
+[22:02:32] Loop detected
+[22:02:33] Checkpoint created
+[22:02:34] Escalating
+[22:03:18] Cloud Worker completed
+[22:03:20] Browser validation passed
+[22:03:21] Task completed
+
+==================================================
+SIMULATION MODE
+==================================================
+
+The MVP must include a complete simulation environment.
+
+This allows the entire product to be demonstrated without external AI credentials.
+
+Create scenarios:
+
+SUCCESS_FIRST_ATTEMPT
+
+FAIL_THEN_SUCCESS
+
+ALWAYS_FAIL
+
+LOOP_DETECTED
+
+ESCALATION_SUCCESS
+
+BUDGET_EXCEEDED
+
+CHECKPOINT_AND_RESUME
+
+The user should be able to select a scenario and watch the Supervisor execute it.
+
+The UI should clearly indicate when something is simulated.
+
+Never pretend simulated results are real AI results.
+
+==================================================
+DATABASE
+==================================================
+
+Use a proper persistence layer.
+
+SQLite is acceptable for the MVP.
+
+Store at minimum:
+
+projects
+tasks
+task_attempts
+workers
+models
+providers
+checkpoints
+events
+budgets
+usage
+
+Keep persistence separate from business logic.
+
+==================================================
+API
+==================================================
+
+Provide a clean backend API.
+
+At minimum support:
+
+Create task
+List tasks
+Get task
+Start task
+Pause task
+Resume task
+Cancel task
+Get task events
+Get task checkpoints
+Create checkpoint
+List workers
+List models
+List providers
+Get usage
+Get budgets
+
+Keep API handlers separate from business logic.
+
+==================================================
+SECURITY
+==================================================
+
+Never expose API keys.
+
+Never write API keys into logs.
+
+Use environment variables/secrets.
+
+Clearly isolate real command execution.
+
+Do not expose unrestricted arbitrary shell execution through a public API.
+
+==================================================
+ARCHITECTURE
+==================================================
+
+Choose the architecture yourself.
+
+Do NOT follow an architecture from another implementation.
+
+However, keep these conceptual boundaries separate:
+
+User Interface
+API
+Supervisor Engine
+Decision Engine
+Task State
+Worker/Agent Layer
+Tool Layer
+Validation Layer
+Checkpoint Layer
+Budget Layer
+Persistence Layer
+Provider Layer
+
+The Supervisor Engine should be testable independently from the UI.
+
+==================================================
+TESTING
+==================================================
+
+Write automated tests for the core system.
+
+At minimum test:
+
+task creation
+task state transitions
+Worker results
+retry logic
+attempt counting
+loop detection
+escalation
+checkpoint creation
+checkpoint resume
+budget enforcement
+validation
+task completion
+task failure
+
+Important:
+
+total attempts must be different from failed attempts.
+
+No attempt may be counted twice.
+
+A task must not become DONE merely because a Worker claims success if validation fails.
+
+A task must not exceed its configured budget.
+
+==================================================
+DEMO
+==================================================
+
+When the MVP starts, the user should be able to click:
+
+"Create Demo Task"
+
+and select:
+
+"Fix authentication bug"
+
+Then click:
+
+START
+
+The application should visibly demonstrate:
+
+Supervisor
+↓
+Worker
+↓
+failure
+↓
+retry
+↓
+failure
+↓
+loop detection
+↓
+checkpoint
+↓
+escalation
+↓
+stronger Worker
+↓
+validation
+↓
+DONE
+
+The entire flow should be visible in the UI.
+
+==================================================
+IMPLEMENTATION STRATEGY
+==================================================
+
+Build the MVP in logical stages.
+
+First build the core orchestration engine.
+
+Then persistence.
+
+Then task/event management.
+
+Then simulation.
+
+Then validation abstractions.
+
+Then budget/checkpoint systems.
+
+Then UI.
+
+Then provider/agent integrations.
+
+Do not build fake integrations and claim they are real.
+
+Use mocks/simulators where external infrastructure is unavailable.
+
+==================================================
+FINAL REQUIREMENT
+==================================================
+
+Deliver a working, runnable MVP.
+
+It must have:
+
+- working backend
+- working frontend
+- persistent task state
+- Supervisor engine
+- Worker abstraction
+- decision engine
+- retry
+- escalation
+- loop detection
+- checkpoint/resume
+- budget tracking
+- validation abstractions
+- simulation mode
+- event timeline
+- automated tests
+- README
+
+The README must explain:
+
+architecture
+data model
+state machine
+Supervisor logic
+Worker interface
+decision engine
+retry policy
+escalation policy
+loop detection
+checkpoint system
+budget system
+validation system
+simulation mode
+how to run the project
+how to run tests
+what is simulated
+what is actually integrated
+
+Again:
+
+THIS IS A NEW IMPLEMENTATION.
+
+Do not use or depend on any previous Supervisor implementation.
+Do not assume any existing files.
+Design and build the system from this specification.
